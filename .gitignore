@@ -1,0 +1,12 @@
+config/secrets.php
+config/service-account.json
+storage/logs/*
+storage/ratelimit/*
+storage/backups/*
+public/uploads/*
+!public/uploads/.htaccess
+!public/uploads/gym_logos/
+!public/uploads/members/
+!storage/logs/.gitkeep
+!storage/ratelimit/.gitkeep
+.DS_Store

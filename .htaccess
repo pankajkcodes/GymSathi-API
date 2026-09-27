@@ -1,0 +1,10 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block direct browser access to sensitive folders
+    RewriteRule ^(app|config|storage|cron|migrations|tests) - [F,L]
+
+    # Pass everything else silently into the public directory
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

@@ -1,0 +1,18 @@
+# Document root of api.gymsathi.in
+# CORS and OPTIONS preflight are handled in app/bootstrap.php — don't add Access-Control-* headers here.
+
+Options -Indexes
+
+# Some hosts strip the Authorization header before PHP sees it.
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Block hidden files (.env, .git, …)
+RewriteRule (^|/)\. - [F,L]
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "no-referrer"
+</IfModule>

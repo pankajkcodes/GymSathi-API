@@ -1,0 +1,533 @@
+{
+  "info": {
+    "name": "GymSathi API (v1)",
+    "description": "Endpoints for the GymSathi backend (see GymSathi API/README.md). Auth: Bearer JWT for {{user_token}}/{{member_token}}, admin can use Bearer {{admin_token}} or the admin_token cookie. Reads are GET (query params), writes are POST (JSON body, or multipart when a file field is present).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{user_token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://api.gymsathi.in/v1", "description": "Live. Local: http://127.0.0.1:8099/v1 (php -S 127.0.0.1:8099 -t public)" },
+    { "key": "user_token", "value": "" },
+    { "key": "member_token", "value": "" },
+    { "key": "admin_token", "value": "" },
+    { "key": "cron_secret", "value": "" },
+    { "key": "gym_id", "value": "" },
+    { "key": "member_id", "value": "" },
+    { "key": "batch_id", "value": "" },
+    { "key": "plan_id", "value": "" },
+    { "key": "expense_id", "value": "" },
+    { "key": "user_id", "value": "" },
+    { "key": "notification_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth (owner/staff)",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST", "auth": { "type": "noauth" },
+            "url": "{{base_url}}/auth/login.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"email\": \"owner@example.com\",\n  \"password\": \"secret123\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 200) {",
+            "  const d = pm.response.json();",
+            "  if (d.data && d.data.token) pm.collectionVariables.set('user_token', d.data.token);",
+            "}"
+          ]}}]
+        },
+        {
+          "name": "Login with Google",
+          "request": {
+            "method": "POST", "auth": { "type": "noauth" },
+            "url": "{{base_url}}/auth/login-google.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"id_token\": \"<google-id-token>\"\n}" }
+          }
+        },
+        {
+          "name": "Forgot Password (send OTP)",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "url": "{{base_url}}/auth/forgot-password.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}}, "raw": "{\n  \"email\": \"owner@example.com\"\n}" } }
+        },
+        {
+          "name": "Reset Password",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "url": "{{base_url}}/auth/reset-password.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"email\": \"owner@example.com\",\n  \"otp\": \"123456\",\n  \"new_password\": \"newSecret123\"\n}" } }
+        },
+        {
+          "name": "Me",
+          "request": { "method": "GET", "url": "{{base_url}}/auth/me.php" }
+        },
+        {
+          "name": "Update Profile",
+          "request": { "method": "POST", "url": "{{base_url}}/auth/update-profile.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"name\": \"Owner Name\",\n  \"phone\": \"9999999999\",\n  \"email\": \"owner@example.com\"\n}" } }
+        },
+        {
+          "name": "Change Password",
+          "request": { "method": "POST", "url": "{{base_url}}/auth/change-password.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"current_password\": \"oldSecret123\",\n  \"new_password\": \"newSecret123\"\n}" } }
+        }
+      ]
+    },
+    {
+      "name": "Signup (public)",
+      "item": [
+        {
+          "name": "Register (free/manual)",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "url": "{{base_url}}/signup/register.php",
+            "description": "multipart/form-data when uploading a logo file field: logo",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"gym_name\": \"Iron Gym\",\n  \"owner_name\": \"Owner Name\",\n  \"email\": \"owner@example.com\",\n  \"password\": \"secret123\",\n  \"phone\": \"9999999999\",\n  \"address\": \"123 Main St\",\n  \"id_token\": \"\"\n}" } }
+        },
+        {
+          "name": "Send Email OTP",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "url": "{{base_url}}/signup/send-email-otp.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}}, "raw": "{\n  \"email\": \"owner@example.com\"\n}" } }
+        },
+        {
+          "name": "Verify Email OTP",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "url": "{{base_url}}/signup/verify-email-otp.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"email\": \"owner@example.com\",\n  \"otp\": \"123456\"\n}" } }
+        },
+        {
+          "name": "Paid Signup - Create Order",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "url": "{{base_url}}/signup/paid-order.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"plan_id\": 1,\n  \"email\": \"owner@example.com\",\n  \"owner_name\": \"Owner Name\"\n}" } }
+        },
+        {
+          "name": "Paid Signup - Verify Payment",
+          "request": { "method": "POST", "auth": { "type": "noauth" }, "url": "{{base_url}}/signup/paid-verify.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"razorpay_order_id\": \"\",\n  \"razorpay_payment_id\": \"\",\n  \"razorpay_signature\": \"\",\n  \"owner_name\": \"Owner Name\",\n  \"email\": \"owner@example.com\",\n  \"password\": \"secret123\",\n  \"phone\": \"9999999999\",\n  \"gym_name\": \"Iron Gym\",\n  \"address\": \"\",\n  \"district\": \"\",\n  \"state\": \"\",\n  \"pincode\": \"\"\n}" } }
+        }
+      ]
+    },
+    {
+      "name": "Gyms",
+      "item": [
+        {
+          "name": "List My Gyms",
+          "request": { "method": "GET", "url": "{{base_url}}/gyms/list.php" }
+        },
+        {
+          "name": "Show Gym",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/gyms/show.php?gym_id={{gym_id}}",
+            "host": ["{{base_url}}"], "path": ["gyms", "show.php"], "query": [{ "key": "gym_id", "value": "{{gym_id}}" }] } }
+        },
+        {
+          "name": "Create Gym",
+          "request": { "method": "POST", "url": "{{base_url}}/gyms/create.php",
+            "description": "multipart/form-data when uploading logo file field: logo",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"gym_name\": \"Iron Gym\",\n  \"phone\": \"9999999999\",\n  \"address\": \"123 Main St\"\n}" } }
+        },
+        {
+          "name": "Update Gym",
+          "request": { "method": "POST", "url": "{{base_url}}/gyms/update.php",
+            "description": "multipart/form-data when uploading logo file field: logo",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"gym_name\": \"Iron Gym Updated\",\n  \"phone\": \"9999999999\",\n  \"address\": \"123 Main St\"\n}" } }
+        },
+        {
+          "name": "Delete Gym",
+          "request": { "method": "POST", "url": "{{base_url}}/gyms/delete.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}}, "raw": "{\n  \"gym_id\": \"{{gym_id}}\"\n}" } }
+        }
+      ]
+    },
+    {
+      "name": "Staff",
+      "item": [
+        {
+          "name": "List Staff",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/staff/list.php?gym_id={{gym_id}}",
+            "host": ["{{base_url}}"], "path": ["staff", "list.php"], "query": [{ "key": "gym_id", "value": "{{gym_id}}" }] } }
+        },
+        {
+          "name": "Create Staff",
+          "request": { "method": "POST", "url": "{{base_url}}/staff/create.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"gym_ids\": [\"{{gym_id}}\"],\n  \"email\": \"staff@example.com\",\n  \"name\": \"Staff Name\",\n  \"phone\": \"9999999999\",\n  \"password\": \"secret123\",\n  \"role\": \"manager\",\n  \"permissions\": {\"members\": {\"read\": true, \"write\": true}}\n}" } }
+        },
+        {
+          "name": "Update Staff",
+          "request": { "method": "POST", "url": "{{base_url}}/staff/update.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"user_id\": \"{{user_id}}\",\n  \"role\": \"manager\",\n  \"permissions\": {\"members\": {\"read\": true, \"write\": false}}\n}" } }
+        },
+        {
+          "name": "Delete Staff",
+          "request": { "method": "POST", "url": "{{base_url}}/staff/delete.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"user_id\": \"{{user_id}}\"\n}" } }
+        }
+      ]
+    },
+    {
+      "name": "Members",
+      "item": [
+        {
+          "name": "List Members",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/members/list.php?gym_id={{gym_id}}&filter=all&search=&page=1&limit=20",
+            "host": ["{{base_url}}"], "path": ["members", "list.php"],
+            "query": [
+              { "key": "gym_id", "value": "{{gym_id}}" },
+              { "key": "filter", "value": "all", "description": "all | active | expired | unpaid | new_members ..." },
+              { "key": "search", "value": "" },
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "20" }
+            ] } }
+        },
+        {
+          "name": "Show Member",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/members/show.php?gym_id={{gym_id}}&member_id={{member_id}}",
+            "host": ["{{base_url}}"], "path": ["members", "show.php"],
+            "query": [{ "key": "gym_id", "value": "{{gym_id}}" }, { "key": "member_id", "value": "{{member_id}}" }] } }
+        },
+        {
+          "name": "Create Member",
+          "request": { "method": "POST", "url": "{{base_url}}/members/create.php",
+            "description": "multipart/form-data when uploading photo field: profile_image",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"name\": \"Member Name\",\n  \"phone\": \"9999999999\",\n  \"email\": \"member@example.com\",\n  \"start_date\": \"2026-01-01\",\n  \"expiry_date\": \"2026-12-31\",\n  \"batch_id\": \"{{batch_id}}\",\n  \"plan_id\": \"{{plan_id}}\",\n  \"status\": \"active\"\n}" } }
+        },
+        {
+          "name": "Update Member",
+          "request": { "method": "POST", "url": "{{base_url}}/members/update.php",
+            "description": "multipart/form-data when uploading photo field: profile_image. Only fields sent are updated (name, phone, email, start_date, expiry_date, batch_id, plan_id, status).",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"member_id\": \"{{member_id}}\",\n  \"name\": \"Member Name Updated\"\n}" } }
+        },
+        {
+          "name": "Set Member Status",
+          "request": { "method": "POST", "url": "{{base_url}}/members/set-status.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"member_id\": \"{{member_id}}\",\n  \"status\": \"active\"\n}" } }
+        },
+        {
+          "name": "Delete Member",
+          "request": { "method": "POST", "url": "{{base_url}}/members/delete.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"member_id\": \"{{member_id}}\"\n}" } }
+        },
+        {
+          "name": "Import Members",
+          "request": { "method": "POST", "url": "{{base_url}}/members/import.php",
+            "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+              "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"members\": [\n    {\"name\": \"Member A\", \"phone\": \"9999999991\"},\n    {\"name\": \"Member B\", \"phone\": \"9999999992\"}\n  ]\n}" } }
+        }
+      ]
+    },
+    {
+      "name": "Batches",
+      "item": [
+        { "name": "List Batches", "request": { "method": "GET", "url": { "raw": "{{base_url}}/batches/list.php?gym_id={{gym_id}}",
+          "host": ["{{base_url}}"], "path": ["batches", "list.php"], "query": [{ "key": "gym_id", "value": "{{gym_id}}" }] } } },
+        { "name": "Create Batch", "request": { "method": "POST", "url": "{{base_url}}/batches/create.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"batch_name\": \"Morning Batch\",\n  \"start_time\": \"06:00\",\n  \"end_time\": \"08:00\"\n}" } } },
+        { "name": "Update Batch", "request": { "method": "POST", "url": "{{base_url}}/batches/update.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"batch_id\": \"{{batch_id}}\",\n  \"batch_name\": \"Morning Batch\",\n  \"start_time\": \"06:00\",\n  \"end_time\": \"08:00\"\n}" } } },
+        { "name": "Delete Batch", "request": { "method": "POST", "url": "{{base_url}}/batches/delete.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"batch_id\": \"{{batch_id}}\"\n}" } } }
+      ]
+    },
+    {
+      "name": "Gym Plans",
+      "item": [
+        { "name": "List Plans", "request": { "method": "GET", "url": { "raw": "{{base_url}}/gym-plans/list.php?gym_id={{gym_id}}",
+          "host": ["{{base_url}}"], "path": ["gym-plans", "list.php"], "query": [{ "key": "gym_id", "value": "{{gym_id}}" }] } } },
+        { "name": "Create Plan", "request": { "method": "POST", "url": "{{base_url}}/gym-plans/create.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"plan_name\": \"Monthly\",\n  \"duration_months\": 1,\n  \"price\": 1000,\n  \"description\": \"\"\n}" } } },
+        { "name": "Update Plan", "request": { "method": "POST", "url": "{{base_url}}/gym-plans/update.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"plan_id\": \"{{plan_id}}\",\n  \"plan_name\": \"Monthly\",\n  \"duration_months\": 1,\n  \"price\": 1000,\n  \"description\": \"\"\n}" } } },
+        { "name": "Delete Plan", "request": { "method": "POST", "url": "{{base_url}}/gym-plans/delete.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"plan_id\": \"{{plan_id}}\"\n}" } } }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        { "name": "Check In", "request": { "method": "POST", "url": "{{base_url}}/attendance/check-in.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"member_id\": \"{{member_id}}\",\n  \"date\": \"2026-09-27\"\n}" } } },
+        { "name": "Daily Attendance", "request": { "method": "GET", "url": { "raw": "{{base_url}}/attendance/daily.php?gym_id={{gym_id}}&date=2026-09-27&filter=&search=",
+          "host": ["{{base_url}}"], "path": ["attendance", "daily.php"],
+          "query": [{ "key": "gym_id", "value": "{{gym_id}}" }, { "key": "date", "value": "2026-09-27" }, { "key": "filter", "value": "" }, { "key": "search", "value": "" }] } } },
+        { "name": "Attendance History", "request": { "method": "GET", "url": { "raw": "{{base_url}}/attendance/history.php?gym_id={{gym_id}}&member_id={{member_id}}",
+          "host": ["{{base_url}}"], "path": ["attendance", "history.php"],
+          "query": [{ "key": "gym_id", "value": "{{gym_id}}" }, { "key": "member_id", "value": "{{member_id}}" }] } } }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        { "name": "List Payments", "request": { "method": "GET", "url": { "raw": "{{base_url}}/payments/list.php?gym_id={{gym_id}}&member_id={{member_id}}",
+          "host": ["{{base_url}}"], "path": ["payments", "list.php"],
+          "query": [{ "key": "gym_id", "value": "{{gym_id}}" }, { "key": "member_id", "value": "{{member_id}}" }] } } },
+        { "name": "Create Payment (manual)", "request": { "method": "POST", "url": "{{base_url}}/payments/create.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"member_id\": \"{{member_id}}\",\n  \"amount\": 1000,\n  \"payment_method\": \"cash\",\n  \"transaction_id\": \"\"\n}" } } },
+        { "name": "Online Payment - Create Order", "request": { "method": "POST", "url": "{{base_url}}/payments/online-order.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"member_id\": \"{{member_id}}\",\n  \"plan_id\": \"{{plan_id}}\"\n}" } } },
+        { "name": "Online Payment - Verify", "request": { "method": "POST", "url": "{{base_url}}/payments/online-verify.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"razorpay_order_id\": \"\",\n  \"razorpay_payment_id\": \"\",\n  \"razorpay_signature\": \"\"\n}" } } }
+      ]
+    },
+    {
+      "name": "Expenses",
+      "item": [
+        { "name": "List Expenses", "request": { "method": "GET", "url": { "raw": "{{base_url}}/expenses/list.php?gym_id={{gym_id}}&from_date=&to_date=",
+          "host": ["{{base_url}}"], "path": ["expenses", "list.php"],
+          "query": [{ "key": "gym_id", "value": "{{gym_id}}" }, { "key": "from_date", "value": "" }, { "key": "to_date", "value": "" }] } } },
+        { "name": "Show Expense", "request": { "method": "GET", "url": { "raw": "{{base_url}}/expenses/show.php?gym_id={{gym_id}}&expense_id={{expense_id}}",
+          "host": ["{{base_url}}"], "path": ["expenses", "show.php"],
+          "query": [{ "key": "gym_id", "value": "{{gym_id}}" }, { "key": "expense_id", "value": "{{expense_id}}" }] } } },
+        { "name": "Create Expense", "request": { "method": "POST", "url": "{{base_url}}/expenses/create.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"title\": \"Electricity Bill\",\n  \"amount\": 500,\n  \"expense_date\": \"2026-09-27\",\n  \"category\": \"utilities\",\n  \"description\": \"\"\n}" } } },
+        { "name": "Update Expense", "request": { "method": "POST", "url": "{{base_url}}/expenses/update.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"expense_id\": \"{{expense_id}}\",\n  \"title\": \"Electricity Bill\",\n  \"amount\": 500,\n  \"expense_date\": \"2026-09-27\",\n  \"category\": \"utilities\",\n  \"description\": \"\"\n}" } } },
+        { "name": "Delete Expense", "request": { "method": "POST", "url": "{{base_url}}/expenses/delete.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"expense_id\": \"{{expense_id}}\"\n}" } } }
+      ]
+    },
+    {
+      "name": "App Plans (GymSathi subscription)",
+      "item": [
+        { "name": "List App Plans", "request": { "method": "GET", "url": { "raw": "{{base_url}}/app-plans/list.php?gym_id={{gym_id}}",
+          "host": ["{{base_url}}"], "path": ["app-plans", "list.php"], "query": [{ "key": "gym_id", "value": "{{gym_id}}" }] } } },
+        { "name": "Purchase History", "request": { "method": "GET", "url": { "raw": "{{base_url}}/app-plans/history.php?gym_id={{gym_id}}",
+          "host": ["{{base_url}}"], "path": ["app-plans", "history.php"], "query": [{ "key": "gym_id", "value": "{{gym_id}}" }] } } },
+        { "name": "Purchase - Create Order", "request": { "method": "POST", "url": "{{base_url}}/app-plans/purchase-order.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}}, "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"plan_id\": \"{{plan_id}}\"\n}" } } },
+        { "name": "Purchase - Verify", "request": { "method": "POST", "url": "{{base_url}}/app-plans/purchase-verify.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"razorpay_order_id\": \"\",\n  \"razorpay_payment_id\": \"\",\n  \"razorpay_signature\": \"\"\n}" } } }
+      ]
+    },
+    {
+      "name": "Reports & Stats",
+      "item": [
+        { "name": "Summary", "request": { "method": "GET", "url": { "raw": "{{base_url}}/reports/summary.php?gym_id={{gym_id}}",
+          "host": ["{{base_url}}"], "path": ["reports", "summary.php"], "query": [{ "key": "gym_id", "value": "{{gym_id}}" }] } } },
+        { "name": "Daily", "request": { "method": "GET", "url": { "raw": "{{base_url}}/reports/daily.php?gym_id={{gym_id}}&date=",
+          "host": ["{{base_url}}"], "path": ["reports", "daily.php"], "query": [{ "key": "gym_id", "value": "{{gym_id}}" }, { "key": "date", "value": "" }] } } },
+        { "name": "Chart", "request": { "method": "GET", "url": { "raw": "{{base_url}}/reports/chart.php?gym_id={{gym_id}}&type=",
+          "host": ["{{base_url}}"], "path": ["reports", "chart.php"],
+          "query": [{ "key": "gym_id", "value": "{{gym_id}}" }, { "key": "type", "value": "", "description": "see ReportService::CHART_TYPES" }] } } },
+        { "name": "Export", "request": { "method": "GET", "url": { "raw": "{{base_url}}/reports/export.php?gym_id={{gym_id}}&type=&format=json&start_date=&end_date=",
+          "host": ["{{base_url}}"], "path": ["reports", "export.php"],
+          "query": [
+            { "key": "gym_id", "value": "{{gym_id}}" },
+            { "key": "type", "value": "", "description": "see ReportService::EXPORT_TYPES" },
+            { "key": "format", "value": "json" },
+            { "key": "start_date", "value": "" },
+            { "key": "end_date", "value": "" }
+          ] } } }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": { "raw": "{{base_url}}/notifications/list.php?gym_id={{gym_id}}",
+          "host": ["{{base_url}}"], "path": ["notifications", "list.php"], "query": [{ "key": "gym_id", "value": "{{gym_id}}" }] } } },
+        { "name": "Mark Read", "request": { "method": "POST", "url": "{{base_url}}/notifications/mark-read.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"notification_id\": \"{{notification_id}}\",\n  \"all\": false\n}" } } }
+      ]
+    },
+    {
+      "name": "Devices (push tokens)",
+      "item": [
+        { "name": "Register Device", "request": { "method": "POST", "url": "{{base_url}}/devices/register.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"token\": \"<fcm-device-token>\",\n  \"platform\": \"android\"\n}" } } },
+        { "name": "Unregister Device", "request": { "method": "POST", "url": "{{base_url}}/devices/unregister.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}}, "raw": "{\n  \"token\": \"<fcm-device-token>\"\n}" } } }
+      ]
+    },
+    {
+      "name": "Member App",
+      "description": "Uses {{member_token}} — set the collection auth for this folder to Bearer {{member_token}}.",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{member_token}}", "type": "string" }] },
+      "item": [
+        { "name": "Login - Send OTP", "request": { "method": "POST", "auth": { "type": "noauth" }, "url": "{{base_url}}/member-app/login-otp.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}}, "raw": "{\n  \"email\": \"member@example.com\"\n}" } } },
+        { "name": "Login - Verify OTP", "request": { "method": "POST", "auth": { "type": "noauth" }, "url": "{{base_url}}/member-app/login.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"email\": \"member@example.com\",\n  \"otp\": \"123456\"\n}" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 200) {",
+            "  const d = pm.response.json();",
+            "  if (d.data && d.data.token) pm.collectionVariables.set('member_token', d.data.token);",
+            "}"
+          ]}}] } },
+        { "name": "Me", "request": { "method": "GET", "url": "{{base_url}}/member-app/me.php" } },
+        { "name": "Attendance", "request": { "method": "GET", "url": "{{base_url}}/member-app/attendance.php" } },
+        { "name": "Payments", "request": { "method": "GET", "url": "{{base_url}}/member-app/payments.php" } },
+        { "name": "Online Payment - Create Order", "request": { "method": "POST", "url": "{{base_url}}/member-app/online-order.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}}, "raw": "{\n  \"plan_id\": \"{{plan_id}}\"\n}" } } },
+        { "name": "Online Payment - Verify", "request": { "method": "POST", "url": "{{base_url}}/member-app/online-verify.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"razorpay_order_id\": \"\",\n  \"razorpay_payment_id\": \"\",\n  \"razorpay_signature\": \"\"\n}" } } }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Uses {{admin_token}} — set the collection auth for this folder to Bearer {{admin_token}} (or rely on the admin_token cookie, e.g. after Login with cookie jar enabled).",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+      "item": [
+        { "name": "Login", "request": { "method": "POST", "auth": { "type": "noauth" }, "url": "{{base_url}}/admin/login.php",
+          "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+            "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"secret123\"\n}" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 200) {",
+            "  const d = pm.response.json();",
+            "  if (d.data && d.data.token) pm.collectionVariables.set('admin_token', d.data.token);",
+            "}"
+          ]}}] } },
+        { "name": "Logout", "request": { "method": "POST", "url": "{{base_url}}/admin/logout.php" } },
+        { "name": "Me", "request": { "method": "GET", "url": "{{base_url}}/admin/me.php" } },
+        { "name": "Dashboard", "request": { "method": "GET", "url": "{{base_url}}/admin/dashboard.php" } },
+        { "name": "Period Stats", "request": { "method": "GET", "url": "{{base_url}}/admin/period-stats.php" } },
+        { "name": "Stats (legacy)", "request": { "method": "GET", "url": "{{base_url}}/admin/stats.php" } },
+        {
+          "name": "Gyms",
+          "item": [
+            { "name": "List", "request": { "method": "GET", "url": { "raw": "{{base_url}}/admin/gyms/list.php?filter=&search=",
+              "host": ["{{base_url}}"], "path": ["admin", "gyms", "list.php"], "query": [{ "key": "filter", "value": "" }, { "key": "search", "value": "" }] } } },
+            { "name": "Show", "request": { "method": "GET", "url": { "raw": "{{base_url}}/admin/gyms/show.php?gym_id={{gym_id}}",
+              "host": ["{{base_url}}"], "path": ["admin", "gyms", "show.php"], "query": [{ "key": "gym_id", "value": "{{gym_id}}" }] } } },
+            { "name": "Create", "request": { "method": "POST", "url": "{{base_url}}/admin/gyms/create.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+                "raw": "{\n  \"gym_name\": \"Iron Gym\",\n  \"owner_name\": \"Owner Name\",\n  \"email\": \"owner@example.com\",\n  \"phone\": \"9999999999\",\n  \"address\": \"\"\n}" } } },
+            { "name": "Update Status", "request": { "method": "POST", "url": "{{base_url}}/admin/gyms/update-status.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+                "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"status\": \"active\"\n}" } } },
+            { "name": "End Trial", "request": { "method": "POST", "url": "{{base_url}}/admin/gyms/end-trial.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}}, "raw": "{\n  \"gym_id\": \"{{gym_id}}\"\n}" } } }
+          ]
+        },
+        {
+          "name": "Members",
+          "item": [
+            { "name": "List (all gyms)", "request": { "method": "GET", "url": { "raw": "{{base_url}}/admin/members/list.php?gym_id=&filter=&search=",
+              "host": ["{{base_url}}"], "path": ["admin", "members", "list.php"],
+              "query": [{ "key": "gym_id", "value": "" }, { "key": "filter", "value": "" }, { "key": "search", "value": "" }] } } }
+          ]
+        },
+        {
+          "name": "Staff",
+          "item": [
+            { "name": "List", "request": { "method": "GET", "url": { "raw": "{{base_url}}/admin/staff/list.php?gym_id=",
+              "host": ["{{base_url}}"], "path": ["admin", "staff", "list.php"], "query": [{ "key": "gym_id", "value": "" }] } } },
+            { "name": "Create", "request": { "method": "POST", "url": "{{base_url}}/admin/staff/create.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+                "raw": "{\n  \"gym_ids\": [\"{{gym_id}}\"],\n  \"email\": \"staff@example.com\",\n  \"name\": \"Staff Name\",\n  \"phone\": \"\",\n  \"password\": \"secret123\",\n  \"role\": \"manager\",\n  \"permissions\": {}\n}" } } },
+            { "name": "Delete", "request": { "method": "POST", "url": "{{base_url}}/admin/staff/delete.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}}, "raw": "{\n  \"user_id\": \"{{user_id}}\"\n}" } } },
+            { "name": "Permissions", "request": { "method": "POST", "url": "{{base_url}}/admin/staff/permissions.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+                "raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"gym_assignments\": []\n}" } } }
+          ]
+        },
+        {
+          "name": "Subscriptions",
+          "item": [
+            { "name": "List", "request": { "method": "GET", "url": { "raw": "{{base_url}}/admin/subscriptions/list.php?gym_id=&filter=",
+              "host": ["{{base_url}}"], "path": ["admin", "subscriptions", "list.php"], "query": [{ "key": "gym_id", "value": "" }, { "key": "filter", "value": "" }] } } },
+            { "name": "Renew", "request": { "method": "POST", "url": "{{base_url}}/admin/subscriptions/renew.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+                "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"duration_months\": 1,\n  \"amount\": 999\n}" } } }
+          ]
+        },
+        {
+          "name": "App Plans",
+          "item": [
+            { "name": "List", "request": { "method": "GET", "url": "{{base_url}}/admin/app-plans/list.php" } },
+            { "name": "Create", "request": { "method": "POST", "url": "{{base_url}}/admin/app-plans/create.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+                "raw": "{\n  \"plan_name\": \"Yearly\",\n  \"duration_months\": 12,\n  \"price\": 9999,\n  \"original_price\": 11999,\n  \"description\": \"\",\n  \"features\": \"\",\n  \"highlight_color\": \"\"\n}" } } },
+            { "name": "Update", "request": { "method": "POST", "url": "{{base_url}}/admin/app-plans/update.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+                "raw": "{\n  \"plan_id\": \"{{plan_id}}\",\n  \"plan_name\": \"Yearly\",\n  \"duration_months\": 12,\n  \"price\": 9999,\n  \"original_price\": 11999,\n  \"description\": \"\",\n  \"features\": \"\",\n  \"highlight_color\": \"\"\n}" } } },
+            { "name": "Delete", "request": { "method": "POST", "url": "{{base_url}}/admin/app-plans/delete.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}}, "raw": "{\n  \"plan_id\": \"{{plan_id}}\"\n}" } } }
+          ]
+        },
+        {
+          "name": "Users",
+          "item": [
+            { "name": "List", "request": { "method": "GET", "url": { "raw": "{{base_url}}/admin/users/list.php?search=&role=&filter=",
+              "host": ["{{base_url}}"], "path": ["admin", "users", "list.php"],
+              "query": [{ "key": "search", "value": "" }, { "key": "role", "value": "" }, { "key": "filter", "value": "" }] } } },
+            { "name": "Impersonate", "request": { "method": "POST", "url": "{{base_url}}/admin/users/impersonate.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}}, "raw": "{\n  \"user_id\": \"{{user_id}}\"\n}" } } }
+          ]
+        },
+        {
+          "name": "Notifications",
+          "item": [
+            { "name": "Send to Gym", "request": { "method": "POST", "url": "{{base_url}}/admin/notifications/send.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+                "raw": "{\n  \"gym_id\": \"{{gym_id}}\",\n  \"title\": \"Notice\",\n  \"message\": \"Hello\",\n  \"type\": \"\",\n  \"reference_id\": \"\",\n  \"screen\": \"\"\n}" } } },
+            { "name": "Send Push (raw FCM token)", "request": { "method": "POST", "url": "{{base_url}}/admin/notifications/send-push.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+                "raw": "{\n  \"token\": \"<fcm-token>\",\n  \"title\": \"Notice\",\n  \"body\": \"Hello\",\n  \"message\": \"\"\n}" } } },
+            { "name": "Broadcast", "request": { "method": "POST", "url": "{{base_url}}/admin/notifications/broadcast.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+                "raw": "{\n  \"title\": \"Notice\",\n  \"message\": \"Hello everyone\",\n  \"target\": \"all\",\n  \"type\": \"\"\n}" } } },
+            { "name": "Broadcast Daily Report (admin or cron)", "request": { "method": "POST", "url": "{{base_url}}/admin/notifications/broadcast-daily.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}}, "raw": "{\n  \"date\": \"\",\n  \"gym_ids\": []\n}" } } }
+          ]
+        },
+        {
+          "name": "System",
+          "item": [
+            { "name": "Health", "request": { "method": "GET", "url": "{{base_url}}/admin/system/health.php" } },
+            { "name": "Get Settings", "request": { "method": "GET", "url": "{{base_url}}/admin/system/settings.php" } },
+            { "name": "Update Settings", "request": { "method": "POST", "url": "{{base_url}}/admin/system/settings.php",
+              "body": { "mode": "raw", "options": {"raw": {"language": "json"}},
+                "raw": "{\n  \"maintenance_mode\": false,\n  \"maintenance_message\": \"\",\n  \"android_min_version\": \"1.2.0\",\n  \"android_latest_version\": \"1.2.4\",\n  \"ios_min_version\": \"1.2.0\",\n  \"ios_latest_version\": \"1.2.4\",\n  \"support_email\": \"support@gymsathi.in\",\n  \"play_store_url\": \"\",\n  \"app_store_url\": \"\"\n}" } } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cron (secret, not admin token)",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{cron_secret}}", "type": "string" }] },
+      "item": [
+        { "name": "Trigger", "request": { "method": "POST", "url": { "raw": "{{base_url}}/cron/trigger.php?task=all",
+          "host": ["{{base_url}}"], "path": ["cron", "trigger.php"], "query": [{ "key": "task", "value": "all" }] } } }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        { "name": "Index / health check", "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{base_url}}/../index.php" } }
+      ]
+    }
+  ]
+}
