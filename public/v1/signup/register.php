@@ -15,11 +15,12 @@ $data = validate(input(), [
     'phone' => 'string|maxlen:20',
     'address' => 'string',
     'id_token' => 'string',
+    'access_token' => 'string',
 ]);
 
 $googleId = null;
-if ($data['id_token']) {
-    $google = GoogleAuth::verify($data['id_token']);
+if (!empty($data['id_token']) || !empty($data['access_token'])) {
+    $google = GoogleAuth::verify($data['id_token'] ?? null, $data['access_token'] ?? null);
     $data['email'] = $google['email'];
     $data['owner_name'] = $data['owner_name'] ?: $google['name'];
     $googleId = $google['sub'];

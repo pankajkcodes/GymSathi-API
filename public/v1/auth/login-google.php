@@ -6,7 +6,7 @@ require __DIR__ . '/../../../app/bootstrap.php';
 requireMethod('POST');
 RateLimit::hit('login_google', RateLimit::GOOGLE_LOGIN);
 
-$google = GoogleAuth::verify(input('id_token'));
+$google = GoogleAuth::verify(input('id_token'), input('access_token'));
 
 $user = dbOne("SELECT * FROM users WHERE google_id = ?", [$google['sub']]);
 if (!$user) {

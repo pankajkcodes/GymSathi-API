@@ -1,6 +1,6 @@
 <?php
 // POST { gym_id, member_id, date? } — first scan checks in, second checks out.
-// date (YYYY-MM-DD, UTC) lets staff mark a past day; defaults to today.
+// date (YYYY-MM-DD, IST day) lets staff mark a past day; defaults to today.
 require __DIR__ . '/../../../app/bootstrap.php';
 requireMethod('POST');
 
@@ -11,5 +11,5 @@ $data = validate(input(), [
     'date' => 'date',
 ]);
 
-[$result, $message] = AttendanceService::scan($gym, $data['member_id'], $data['date'] ?? utcToday());
+[$result, $message] = AttendanceService::scan($gym, $data['member_id'], $data['date'] ?? attendanceToday());
 sendSuccess($result, $message);

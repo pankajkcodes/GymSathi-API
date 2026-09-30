@@ -1,12 +1,12 @@
 <?php
-// Attendance. Timestamps are UTC; the "date" of a visit is its UTC date (same as the old API).
+// Attendance. Timestamps are UTC; the "date" of a visit is its IST date (see app/Support/dates.php).
 // A visit's date comes from check_in, or created_at for old rows without check_in.
 
 class AttendanceService
 {
     const DAILY_FILTERS = ['all', 'present', 'absent', 'active', 'expired'];
 
-    const ON_DATE_SQL = "(DATE(a.check_in) = :date OR (a.check_in IS NULL AND a.created_at = :date))";
+    const ON_DATE_SQL = "(DATE(CONVERT_TZ(a.check_in, '+00:00', '" . ATTENDANCE_UTC_OFFSET . "')) = :date OR (a.check_in IS NULL AND a.created_at = :date))";
 
     /**
      * Members of the gym with their attendance for one date.
@@ -80,7 +80,7 @@ class AttendanceService
      */
     public static function history($memberId, $gym = null)
     {
-        $sql = "SELECT id, check_in, check_out, DATE(COALESCE(check_in, created_at)) AS date FROM attendance WHERE member_id = ?";
+        $sql = "SELECT id, check_in, check_out, COALESCE(" . attendanceDaySql('check_in') . ", DATE(created_at)) AS date FROM attendance WHERE member_id = ?";
         $params = [$memberId];
         if ($gym) {
             $sql .= " AND gym_id = ?";
@@ -103,7 +103,7 @@ class AttendanceService
      */
     public static function scan(array $gym, $memberId, $date)
     {
-        if ($date > utcToday()) {
+        if ($date > attendanceToday()) {
             throw new ValidationException("Cannot mark attendance for future dates");
         }
         $member = MemberService::find($gym, $memberId);
@@ -120,7 +120,7 @@ class AttendanceService
         $now = utcNow();
 
         if (!$visit) {
-            $checkIn = $date === utcToday() ? $now : $date . ' ' . gmdate('H:i:s');
+            $checkIn = $date === attendanceToday() ? $now : attendanceUtcAt($date);
             dbRun("INSERT INTO attendance (gym_id, member_id, check_in, created_at) VALUES (?, ?, ?, ?)", [$gym['gym_id'], $memberId, $checkIn, $date]);
             return [['is_present' => true, 'check_in_time' => isoUtc($checkIn), 'check_out_time' => null], 'Checked in successfully'];
         }

@@ -28,7 +28,7 @@ class ReportService
         $params = [
             ':gym' => $code,
             ':today' => today(),
-            ':date' => utcToday(),
+            ':date' => attendanceToday(),
         ];
         if ($includeFinancial) {
             $params[':monthStart'] = $monthStart;
@@ -47,7 +47,7 @@ class ReportService
                 (SELECT COALESCE(SUM({$f['inactive']}), 0) FROM members m WHERE m.gym_id = :gym AND m.status != 'deleted') AS inactive_members,
                 (SELECT COALESCE(SUM({$f['no_plan']}), 0) FROM members m WHERE m.gym_id = :gym AND m.status != 'deleted') AS no_plan_members,
                 (SELECT COALESCE(SUM({$f['unpaid']}), 0) FROM members m LEFT JOIN plans p ON m.plan_id = p.id WHERE m.gym_id = :gym AND m.status != 'deleted') AS unpaid_members,
-                (SELECT COUNT(DISTINCT a.member_id) FROM attendance a WHERE a.gym_id = :gym AND (DATE(a.check_in) = :date OR (a.check_in IS NULL AND a.created_at = :date))) AS today_attendance
+                (SELECT COUNT(DISTINCT a.member_id) FROM attendance a WHERE a.gym_id = :gym AND (" . attendanceDaySql('a.check_in') . " = :date OR (a.check_in IS NULL AND a.created_at = :date))) AS today_attendance
                 $financialSelect
         ", $params) ?: [];
 
@@ -82,8 +82,8 @@ class ReportService
                 (SELECT COUNT(*) FROM members WHERE gym_id = :gym AND DATE(created_at) = :date) AS members_added,
                 (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE gym_id = :gym AND payment_date BETWEEN :dayStart AND :dayEnd) AS revenue,
                 (SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE gym_id = :gym AND expense_date = :date) AS expenses,
-                (SELECT COUNT(*) FROM attendance WHERE gym_id = :gym AND (DATE(check_in) = :date OR (check_in IS NULL AND created_at = :date))) AS attendance_count,
-                (SELECT COUNT(DISTINCT member_id) FROM attendance WHERE gym_id = :gym AND (DATE(check_in) = :date OR (check_in IS NULL AND created_at = :date))) AS unique_members_present,
+                (SELECT COUNT(*) FROM attendance WHERE gym_id = :gym AND (" . attendanceDaySql('check_in') . " = :date OR (check_in IS NULL AND created_at = :date))) AS attendance_count,
+                (SELECT COUNT(DISTINCT member_id) FROM attendance WHERE gym_id = :gym AND (" . attendanceDaySql('check_in') . " = :date OR (check_in IS NULL AND created_at = :date))) AS unique_members_present,
                 (SELECT COUNT(*) FROM members WHERE gym_id = :gym AND status != 'deleted') AS total_members,
                 (SELECT COUNT(*) FROM members WHERE gym_id = :gym AND status = 'active') AS active_members,
                 (SELECT COUNT(*) FROM members WHERE gym_id = :gym AND status = 'expired') AS expired_members,
@@ -131,12 +131,12 @@ class ReportService
             ", [$gym['gym_id'], today()]);
         }
         return dbAll("
-            SELECT DATE(check_in) AS label, COUNT(*) AS value
+            SELECT " . attendanceDaySql('check_in') . " AS label, COUNT(*) AS value
             FROM attendance
             WHERE gym_id = ? AND check_in >= DATE_SUB(?, INTERVAL 30 DAY)
-            GROUP BY DATE(check_in)
-            ORDER BY DATE(check_in)
-        ", [$gym['gym_id'], utcToday()]);
+            GROUP BY label
+            ORDER BY label
+        ", [$gym['gym_id'], attendanceToday()]);
     }
 
     /**
@@ -160,7 +160,7 @@ class ReportService
                 [$sql, $p] = $range('expense_date');
                 return dbAll("SELECT id, title, amount, category, description, expense_date FROM expenses WHERE gym_id = ? $sql ORDER BY expense_date DESC", array_merge([$code], $p));
             case 'attendance':
-                [$sql, $p] = $range('a.check_in');
+                [$sql, $p] = $range("CONVERT_TZ(a.check_in, '+00:00', '" . ATTENDANCE_UTC_OFFSET . "')");
                 return dbAll("SELECT a.id, m.member_number, m.member_code, m.name AS member_name, a.check_in, a.check_out FROM attendance a LEFT JOIN members m ON a.member_id = m.id WHERE a.gym_id = ? $sql ORDER BY a.check_in DESC", array_merge([$code], $p));
             case 'expiring':
                 // Default: active members expiring in the next 7 days
